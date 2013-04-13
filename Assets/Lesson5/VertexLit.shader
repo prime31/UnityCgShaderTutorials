@@ -8,7 +8,7 @@ Shader "_Shaders/Vertex Lit"
 	
 	SubShader
 	{
-		Tags { "RenderType" = "Opaque" }
+		Tags { "LightMode" = "ForwardBase" }
 		
 		Pass
 		{
@@ -26,6 +26,7 @@ CGPROGRAM
 uniform sampler2D _MainTex;
 uniform float4 _MainTex_ST;
 uniform fixed4 _Color;
+uniform fixed4 _LightColor0;
 
 
 struct vertexInput
@@ -50,9 +51,17 @@ fragmentInput vert( vertexInput i )
 	o.pos = mul( UNITY_MATRIX_MVP, i.vertex );
 	o.uv = TRANSFORM_TEX( i.texcoord, _MainTex );
 	
+	// first off, we need the normal to be in world space
+	float3 normalDirection = NORMAL_TO_WORLD( i.normal );
 	
+	// only be dealing with a single directional light though.
+	float3 lightDirection = normalize( _WorldSpaceLightPos0.xyz );
 	
-	o.color = _Color;
+	// calculate diffuse lighting = IncomingLight * DiffuseColor * ( N dot L )
+	// we use max in case the dot is negative which would indicate the light is on the wrong side
+	float3 diffuse = _LightColor0.xyz * _Color.rgb * max( 0.0, dot( normalDirection, lightDirection ) );
+	
+	o.color = half4( diffuse, 1.0 );
     
 	return o;
 }
