@@ -1,9 +1,11 @@
-Shader "_Shaders/Vertex Lit"
+Shader "_Shaders/Vertex Lit Specular"
 {
 	Properties
 	{
 		_MainTex ( "Base (RGB)", 2D ) = "white" {}
 		_Color( "Diffuse Material Color", Color ) = ( 1.0, 1.0, 1.0, 1.0 )
+		_SpecColor( "Specular Material Color", Color ) = ( 1, 1, 1, 1 ) 
+		_Shininess( "Shininess", Float ) = 10
 	}
 	
 	SubShader
@@ -27,6 +29,8 @@ uniform sampler2D _MainTex;
 uniform float4 _MainTex_ST;
 uniform fixed4 _Color;
 uniform fixed4 _LightColor0;
+uniform fixed4 _SpecColor;
+uniform float _Shininess;
 
 
 struct vertexInput
@@ -55,13 +59,32 @@ fragmentInput vert( vertexInput i )
 	float3 normalDirection = NORMAL_TO_WORLD( i.normal );
 	
 	// we will only be dealing with a single directional light
-	float3 lightDirection = normalize( _WorldSpaceLightPos0.xyz );
+	float3 lightDirection = WorldSpaceLightDir( i.vertex );
+	
+    // dir lights will have a length of 1 due to them being already normalized
+    // point lights attenuation will fall off as their distance grows
+    float attenuation = 1.0 / length( lightDirection );
+    lightDirection = normalize( lightDirection );
 	
 	// calculate diffuse lighting = IncomingLight * DiffuseColor * ( N dot L )
 	// we use max in case the dot is negative which would indicate the light is on the wrong side
-	float3 diffuse = _LightColor0.xyz * _Color.rgb * max( 0.0, dot( normalDirection, lightDirection ) );
+	float ndotl = dot( normalDirection, lightDirection );
+	float3 diffuse = attenuation * _LightColor0.rgb * _Color.rgb * max( 0.0, ndotl );
 	
-	o.color = half4( diffuse, 1.0 );
+	float3 viewDirection = WorldSpaceViewDir( i.vertex );
+	float3 specularReflection;
+	
+	// check to make sure the light source is on the correct side
+	if( ndotl > 0 )
+		specularReflection = attenuation * _LightColor0.rgb * _SpecColor.rgb * pow( max( 0.0, dot( reflect( -lightDirection, normalDirection ), viewDirection ) ), _Shininess );
+	else
+		specularReflection = float3( 0.0, 0.0, 0.0 );
+	
+	
+	float3 ambientLighting = UNITY_LIGHTMODEL_AMBIENT.rgb * _Color.rgb;
+	o.color = float4( ambientLighting + diffuse + specularReflection, 1.0 );
+	
+	//o.color = half4( diffuse, 1.0 );
     
 	return o;
 }
