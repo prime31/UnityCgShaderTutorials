@@ -57,9 +57,11 @@ fragmentInput vert( vertexInput i )
 	// we will only be dealing with a single directional light
 	float3 lightDirection = normalize( _WorldSpaceLightPos0.xyz );
 	
+	
 	// calculate diffuse lighting = IncomingLight * DiffuseColor * ( N dot L )
 	// we use max in case the dot is negative which would indicate the light is on the wrong side
-	float3 diffuse = _LightColor0.xyz * _Color.rgb * max( 0.0, dot( normalDirection, lightDirection ) );
+	float ndotl = dot( normalDirection, lightDirection );
+	float3 diffuse = _LightColor0.xyz * _Color.rgb * max( 0.0, ndotl );
 	
 	o.color = half4( diffuse, 1.0 );
     

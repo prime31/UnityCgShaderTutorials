@@ -35,9 +35,9 @@ uniform float _Shininess;
 
 struct vertexInput
 {
-	float4 vertex : POSITION; // position (in object coordinates, i.e. local or model coordinates)
-	float3 normal : NORMAL; // surface normal vector (in object coordinates; usually normalized to unit length)
-	float4 texcoord : TEXCOORD0;  // 0th set of texture coordinates (a.k.a. “UV”; between 0 and 1)
+	float4 vertex : POSITION;
+	float3 normal : NORMAL;
+	float4 texcoord : TEXCOORD0;
 };
 
 
@@ -61,10 +61,7 @@ fragmentInput vert( vertexInput i )
 	// we will only be dealing with a single directional light
 	float3 lightDirection = WorldSpaceLightDir( i.vertex );
 	
-    // dir lights will have a length of 1 due to them being already normalized
-    // point lights attenuation will fall off as their distance grows
-    float attenuation = 1.0 / length( lightDirection );
-    lightDirection = normalize( lightDirection );
+
 	
 	// calculate diffuse lighting = IncomingLight * DiffuseColor * ( N dot L )
 	// we use max in case the dot is negative which would indicate the light is on the wrong side
@@ -76,9 +73,15 @@ fragmentInput vert( vertexInput i )
 	
 	// check to make sure the light source is on the correct side
 	if( ndotl > 0 )
-		specularReflection = attenuation * _LightColor0.rgb * _SpecColor.rgb * pow( max( 0.0, dot( reflect( -lightDirection, normalDirection ), viewDirection ) ), _Shininess );
+	{
+		float3 reflection = reflect( -lightDirection, normalDirection );
+		float4 rdotv = pow( max( 0.0, dot( reflection, viewDirection ) ), _Shininess );
+		specularReflection = attenuation * _LightColor0.rgb * _SpecColor.rgb * rdotv;
+	}
 	else
+	{
 		specularReflection = float3( 0.0, 0.0, 0.0 );
+	}
 	
 	
 	float3 ambientLighting = UNITY_LIGHTMODEL_AMBIENT.rgb * _Color.rgb;
