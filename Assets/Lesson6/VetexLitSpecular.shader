@@ -24,6 +24,8 @@ CGPROGRAM
 #include "../Shared/Prime31.cginc"
 
 
+
+
 // uniforms
 uniform sampler2D _MainTex;
 uniform float4 _MainTex_ST;
@@ -61,12 +63,16 @@ fragmentInput vert( vertexInput i )
 	// we will only be dealing with a single directional light
 	float3 lightDirection = WorldSpaceLightDir( i.vertex );
 	
+    // dir lights will have a length of 1 due to them being already normalized
+    // point lights attenuation will fall off as their distance grows
+    float attenuation = 1.0 / length( lightDirection );
+    lightDirection = normalize( lightDirection );
 
-	
 	// calculate diffuse lighting = IncomingLight * DiffuseColor * ( N dot L )
 	// we use max in case the dot is negative which would indicate the light is on the wrong side
 	float ndotl = dot( normalDirection, lightDirection );
 	float3 diffuse = attenuation * _LightColor0.rgb * _Color.rgb * max( 0.0, ndotl );
+	
 	
 	float3 viewDirection = WorldSpaceViewDir( i.vertex );
 	float3 specularReflection;
@@ -83,11 +89,8 @@ fragmentInput vert( vertexInput i )
 		specularReflection = float3( 0.0, 0.0, 0.0 );
 	}
 	
-	
 	float3 ambientLighting = UNITY_LIGHTMODEL_AMBIENT.rgb * _Color.rgb;
 	o.color = float4( ambientLighting + diffuse + specularReflection, 1.0 );
-	
-	//o.color = half4( diffuse, 1.0 );
     
 	return o;
 }
